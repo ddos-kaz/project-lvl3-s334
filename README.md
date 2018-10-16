@@ -1,4 +1,4 @@
-##project-lvl3-s334 - Page Loader
+# project-lvl3-s334 - Page Loader
 
 <a href="https://codeclimate.com/github/ddos-kaz/project-lvl3-s334/maintainability"><img src="https://api.codeclimate.com/v1/badges/5c34d43c7252916cd4c4/maintainability" /></a>
 <a href="https://codeclimate.com/github/ddos-kaz/project-lvl3-s334/test_coverage"><img src="https://api.codeclimate.com/v1/badges/5c34d43c7252916cd4c4/test_coverage" /></a>
