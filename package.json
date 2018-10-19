@@ -1,6 +1,6 @@
 {
   "name": "ddos-page-loader",
-  "version": "1.0.9",
+  "version": "2.0.1",
   "description": "Third project of Hexlet",
   "main": "index.js",
   "bin": {
@@ -21,6 +21,11 @@
   "keywords": [
     "page-loader"
   ],
+  "jest": {
+    "testPathIgnorePatterns": [
+      "/__fixtures__/"
+    ]
+  },
   "author": "ddoszhan",
   "license": "ISC",
   "bugs": {
@@ -43,6 +48,7 @@
   },
   "dependencies": {
     "axios": "^0.18.0",
+    "cheerio": "^1.0.0-rc.2",
     "commander": "^2.19.0",
     "lodash": "^4.17.11",
     "mz": "^2.7.0"
