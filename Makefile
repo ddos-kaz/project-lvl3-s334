@@ -10,3 +10,5 @@ test:
 	npm test
 test-watch:
 	npm test --watchAll
+debug:
+	DEBUG=page-loader:* npm test

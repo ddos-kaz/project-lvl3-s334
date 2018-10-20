@@ -8,7 +8,6 @@ import isUrl from 'is-url';
 import debug from 'debug';
 
 const mainDebug = debug('page-loader:main');
-debug.enable('page-loader');
 const transformName = nameList => _.join(_.compact(nameList), '-');
 
 const parseAddress = (address) => {
@@ -18,7 +17,7 @@ const parseAddress = (address) => {
 
 const loadData = address => axios.get(address)
   .then(response => response.data)
-  .catch(err => Promise.reject(new Error(`Error in laoding html : ${err}, from url: ${address}`)));
+  .catch(err => err);
 
 const loadResources = (address, dirName) => axios.get(address, { responseType: 'arraybuffer' })
   .then(response => fs.writeFile(dirName, response.data))
@@ -61,8 +60,8 @@ const processResources = (links, address, dir) => {
     return loadResources(resourceAddress, resourceDirectory);
   });
   return Promise.all(promises)
-    .then(() => mainDebug(`All tasks for loading resources successfully was saved in ${dir}`))
-    .catch(err => Promise.reject(new Error(err)));
+    .then(() => mainDebug(`All tasks for loading resources successfully was saved in following directory: ${dir}`))
+    .catch(err => err);
 };
 
 export default (address, dir) => {
@@ -73,11 +72,11 @@ export default (address, dir) => {
   const htmlDirectory = path.resolve(dir, fileName);
   return fs.access(dir, fs.constants.F_OK)
     .then(() => {
-      mainDebug(`Directory ${dir} exists`);
+      mainDebug(`Directory: ${dir} exists`);
       return fs.mkdir(resourceDirectory);
     })
     .then(() => {
-      mainDebug(`Resource directory ${resourceDirectory} was created`);
+      mainDebug(`Resource directory: ${resourceDirectory} was created`);
       return loadData(address);
     })
     .then((data) => {
@@ -88,8 +87,9 @@ export default (address, dir) => {
       formattedData, resourceLinks,
     }) => fs.writeFile(htmlDirectory, formattedData)
       .then(() => {
-        mainDebug(`HTML successfully saved on: ${htmlDirectory}`);
+        mainDebug(`HTML was successfully saved in following Directory: ${htmlDirectory}`);
         return processResources(resourceLinks, address, resourceDirectory);
       }))
-    .catch(err => Promise.reject(new Error(err)));
+    .catch(err => err);
+  // .catch(err => Promise.reject(new Error(err)));
 };

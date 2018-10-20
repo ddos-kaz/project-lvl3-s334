@@ -4,7 +4,7 @@ import nock from 'nock';
 import os from 'os';
 import { promises as fsPromises } from 'fs';
 import path from 'path';
-import loader from '../src';
+import loadPage from '../src';
 
 const host = 'http://localhost';
 const pathname = '/test';
@@ -30,7 +30,7 @@ describe('Page Loader', () => {
     const fileName = 'localhost-test.html';
     const dirName = 'localhost-test_files';
     const tempDir = await fsPromises.mkdtemp(path.join(os.tmpdir(), 'foo-'));
-    await loader(`${host}${pathname}`, tempDir);
+    await loadPage(`${host}${pathname}`, tempDir);
     const sourceImg = await fsPromises.readFile(path.resolve(__dirname, '__fixtures__/src', 'hexlet_logo.png'));
     const responseImg = await fsPromises.readFile(`${tempDir}/${dirName}/src-hexlet_logo.png`, 'utf8');
     const responseData = await fsPromises.readFile(path.resolve(tempDir, fileName), 'utf8');
