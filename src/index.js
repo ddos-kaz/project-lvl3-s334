@@ -5,7 +5,10 @@ import _ from 'lodash';
 import path from 'path';
 import cheerio from 'cheerio';
 import isUrl from 'is-url';
+import debug from 'debug';
 
+const mainDebug = debug('page-loader:main');
+debug.enable('page-loader');
 const transformName = nameList => _.join(_.compact(nameList), '-');
 
 const parseAddress = (address) => {
@@ -58,6 +61,7 @@ const processResources = (links, address, dir) => {
     return loadResources(resourceAddress, resourceDirectory);
   });
   return Promise.all(promises)
+    .then(() => mainDebug(`All tasks for loading resources successfully was saved in ${dir}`))
     .catch(err => Promise.reject(new Error(err)));
 };
 
@@ -68,12 +72,24 @@ export default (address, dir) => {
   const resourceDirectory = path.resolve(dir, dirName);
   const htmlDirectory = path.resolve(dir, fileName);
   return fs.access(dir, fs.constants.F_OK)
-    .then(() => fs.mkdir(resourceDirectory))
-    .then(() => loadData(address))
-    .then(data => transformData(data, dirName))
+    .then(() => {
+      mainDebug(`Directory ${dir} exists`);
+      return fs.mkdir(resourceDirectory);
+    })
+    .then(() => {
+      mainDebug(`Resource directory ${resourceDirectory} was created`);
+      return loadData(address);
+    })
+    .then((data) => {
+      mainDebug('Data successfully loaded');
+      return transformData(data, dirName);
+    })
     .then(({
       formattedData, resourceLinks,
     }) => fs.writeFile(htmlDirectory, formattedData)
-      .then(() => processResources(resourceLinks, address, resourceDirectory)))
+      .then(() => {
+        mainDebug(`HTML successfully saved on: ${htmlDirectory}`);
+        return processResources(resourceLinks, address, resourceDirectory);
+      }))
     .catch(err => Promise.reject(new Error(err)));
 };
