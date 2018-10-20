@@ -4,8 +4,14 @@ import url from 'url';
 import _ from 'lodash';
 import path from 'path';
 import cheerio from 'cheerio';
+import isUrl from 'is-url';
 
-const generateName = nameList => _.join(_.compact(nameList), '-');
+const transformName = nameList => _.join(_.compact(nameList), '-');
+
+const parseAddress = (address) => {
+  const { hostname, pathname } = url.parse(address);
+  return [..._.split(hostname, '.'), ..._.split(pathname, '/')];
+};
 
 const loadData = address => axios.get(address)
   .then(response => response.data)
@@ -13,11 +19,13 @@ const loadData = address => axios.get(address)
 
 const loadResources = (address, dirName) => axios.get(address, { responseType: 'arraybuffer' })
   .then(response => fs.writeFile(dirName, response.data))
-  .catch(err => Promise.reject(new Error(`Error in loading resources: ${err}, from url: ${address}`)));
+  .catch(err => Promise
+    .reject(new Error(`Error in loading resources: ${err}, from url: ${address}`)));
 
-const generateResourceName = (resourcePath) => {
+const genResourceName = (resourcePath) => {
   const { dir, name, ext } = path.parse(resourcePath);
-  return `${generateName(_.split(path.resolve(dir, name), '/'))}${ext}`;
+  const resourceName = isUrl(resourcePath) ? parseAddress(url.resolve(dir, name)) : _.split(path.resolve(dir, name), '/');
+  return `${transformName(resourceName)}${ext}`;
 };
 
 const transformData = (data, dirName) => {
@@ -34,7 +42,7 @@ const transformData = (data, dirName) => {
         return '';
       }
       const resourcePath = $(links[i]).attr(tag.tagSrc);
-      $(links[i]).attr(tag.tagSrc, `${dirName}/${generateResourceName(resourcePath)}`);
+      $(links[i]).attr(tag.tagSrc, `${dirName}/${genResourceName(resourcePath)}`);
       return resourcePath;
     });
     return [...acc, ...mappedLinks];
@@ -42,21 +50,30 @@ const transformData = (data, dirName) => {
   return Promise.resolve({ formattedData: $.html(), resourceLinks: _.compact(resourceLinks) });
 };
 
-const generateResourceDirName = (dir, base) => path.normalize(path.format({ dir, base }));
+
+const processResources = (links, address, dir) => {
+  const promises = links.map((link) => {
+    const resourceAddress = isUrl(link) ? link : `${address}${link}`;
+    const resourceDirectory = path.normalize(path.format({ dir, base: genResourceName(link) }));
+    return loadResources(resourceAddress, resourceDirectory);
+  });
+  return Promise.all(promises)
+    .catch(err => Promise.reject(new Error(err)));
+};
 
 export default (address, dir) => {
-  const { hostname, pathname } = url.parse(address);
-  const name = generateName([..._.split(hostname, '.'), ..._.split(pathname, '/')]);
+  const name = transformName(parseAddress(address));
   const fileName = `${name}.html`;
   const dirName = `${name}_files`;
+  const resourceDirectory = path.resolve(dir, dirName);
+  const htmlDirectory = path.resolve(dir, fileName);
   return fs.access(dir, fs.constants.F_OK)
-    .then(() => fs.mkdir(path.resolve(dir, dirName)))
+    .then(() => fs.mkdir(resourceDirectory))
     .then(() => loadData(address))
     .then(data => transformData(data, dirName))
-    .then(({ formattedData, resourceLinks }) => {
-      const resourcePromises = resourceLinks.map(item => loadResources(`${address}${item}`, generateResourceDirName(path.resolve(dir, dirName), generateResourceName(item))));
-      return Promise.all(resourcePromises)
-        .then(() => fs.writeFile(path.resolve(dir, fileName), formattedData));
-    })
+    .then(({
+      formattedData, resourceLinks,
+    }) => fs.writeFile(htmlDirectory, formattedData)
+      .then(() => processResources(resourceLinks, address, resourceDirectory)))
     .catch(err => Promise.reject(new Error(err)));
 };
