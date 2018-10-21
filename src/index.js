@@ -8,6 +8,8 @@ import isUrl from 'is-url';
 import debug from 'debug';
 
 const mainDebug = debug('page-loader:main');
+const errorDebug = debug('page-loader:error');
+
 const transformName = nameList => _.join(_.compact(nameList), '-');
 
 const parseAddress = (address) => {
@@ -15,19 +17,60 @@ const parseAddress = (address) => {
   return [..._.split(hostname, '.'), ..._.split(pathname, '/')];
 };
 
+const handleError = (err) => {
+  errorDebug(`Failed with following error message: ${err.message}`);
+  switch (err.code) {
+    case 'ENOENT':
+      return Promise.reject(new Error(`Passed ${err.path} does not exist!`));
+    case 'EACCES':
+      return Promise.reject(new Error(`For passed ${err.path} no valid access!`));
+    case 'EISDIR':
+      return Promise.reject(new Error(`${err.path} is directory, no write operation can be performed!`));
+    default:
+      return Promise.reject(err);
+  }
+};
+
+const checkExistanceDirectory = directory => fs.access(directory, fs.constants.F_OK)
+  .then(() => mainDebug(`Directory: ${directory} exists`));
+  // .catch(err => Promise.reject(new Error(`Test: ${err.message}`)));
+
+const addDirectory = directory => fs.mkdir(directory)
+  .then(() => mainDebug(`${directory} was added`));
+  // .catch(err => handleError(err));
+
+const writeToFile = (directory, data) => fs.writeFile(directory, data)
+  .then(() => mainDebug(`Data was successfully saved in '${directory}'`));
+
+const processResponse = (data, status, address) => {
+  if (status === 200) {
+    mainDebug(`Data from '${address}' successfully loaded`);
+    return Promise.resolve(data);
+  }
+  return Promise.reject(new Error(`Expected response code '200', but current code is '${status}' for '${address}'`));
+};
+
 const loadData = address => axios.get(address)
-  .then(response => response.data)
-  .catch(err => err);
+  .then(({ data, status }) => processResponse(data, status, address));
 
 const loadResources = (address, dirName) => axios.get(address, { responseType: 'arraybuffer' })
-  .then(response => fs.writeFile(dirName, response.data))
-  .catch(err => Promise
-    .reject(new Error(`Error in loading resources: ${err}, from url: ${address}`)));
+  .then(({ data, status }) => processResponse(data, status, address))
+  .then(responseData => writeToFile(dirName, responseData));
 
 const genResourceName = (resourcePath) => {
   const { dir, name, ext } = path.parse(resourcePath);
   const resourceName = isUrl(resourcePath) ? parseAddress(url.resolve(dir, name)) : _.split(path.resolve(dir, name), '/');
   return `${transformName(resourceName)}${ext}`;
+};
+
+const processResources = (links, address, dir) => {
+  const promises = links.map((link) => {
+    const resourceAddress = isUrl(link) ? link : `${address}${link}`;
+    const resourceDirectory = path.normalize(path.format({ dir, base: genResourceName(link) }));
+    return loadResources(resourceAddress, resourceDirectory);
+  });
+  return Promise.all(promises)
+    .then(() => mainDebug(`Resources successfully was saved in following directory: ${dir}`));
 };
 
 const transformData = (data, dirName) => {
@@ -52,44 +95,17 @@ const transformData = (data, dirName) => {
   return Promise.resolve({ formattedData: $.html(), resourceLinks: _.compact(resourceLinks) });
 };
 
-
-const processResources = (links, address, dir) => {
-  const promises = links.map((link) => {
-    const resourceAddress = isUrl(link) ? link : `${address}${link}`;
-    const resourceDirectory = path.normalize(path.format({ dir, base: genResourceName(link) }));
-    return loadResources(resourceAddress, resourceDirectory);
-  });
-  return Promise.all(promises)
-    .then(() => mainDebug(`All tasks for loading resources successfully was saved in following directory: ${dir}`))
-    .catch(err => err);
-};
-
-export default (address, dir) => {
+export default (address, directory) => {
   const name = transformName(parseAddress(address));
   const fileName = `${name}.html`;
-  const dirName = `${name}_files`;
-  const resourceDirectory = path.resolve(dir, dirName);
-  const htmlDirectory = path.resolve(dir, fileName);
-  return fs.access(dir, fs.constants.F_OK)
-    .then(() => {
-      mainDebug(`Directory: ${dir} exists`);
-      return fs.mkdir(resourceDirectory);
-    })
-    .then(() => {
-      mainDebug(`Resource directory: ${resourceDirectory} was created`);
-      return loadData(address);
-    })
-    .then((data) => {
-      mainDebug('Data successfully loaded');
-      return transformData(data, dirName);
-    })
-    .then(({
-      formattedData, resourceLinks,
-    }) => fs.writeFile(htmlDirectory, formattedData)
-      .then(() => {
-        mainDebug(`HTML was successfully saved in following Directory: ${htmlDirectory}`);
-        return processResources(resourceLinks, address, resourceDirectory);
-      }))
-    .catch(err => err);
-  // .catch(err => Promise.reject(new Error(err)));
+  const directoryName = `${name}_files`;
+  const resourceDirectory = path.resolve(directory, directoryName);
+  const htmlDirectory = path.resolve(directory, fileName);
+  return checkExistanceDirectory(directory)
+    .then(() => addDirectory(resourceDirectory))
+    .then(() => loadData(address))
+    .then(data => transformData(data, directoryName))
+    .then(({ formattedData, resourceLinks }) => writeToFile(htmlDirectory, formattedData)
+      .then(() => processResources(resourceLinks, address, resourceDirectory)))
+    .catch(err => handleError(err));
 };

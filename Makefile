@@ -10,5 +10,7 @@ test:
 	npm test
 test-watch:
 	npm test --watchAll
-debug:
+debug-test:
 	DEBUG=page-loader:* npm test
+debug-run:
+	DEBUG=page-loader:* npm run babel-node src/bin/page-loader.js
