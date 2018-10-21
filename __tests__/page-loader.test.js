@@ -33,20 +33,23 @@ describe('Page Loader', () => {
 
   it('Wrong output directory', async () => {
     const directory = '/var/tmp/test';
-    try {
+    /* try {
       await loadPage('https://nemo.kz', directory);
     } catch (error) {
-      expect(error.message).toBe(`Passed ${directory} does not exist!`);
-    }
+      expect(error.message).toBe(`Passed '${directory}' does not exist!`);
+    } */
+    await expect(loadPage('https://nemo.kz', directory)).rejects.toThrowErrorMatchingSnapshot();
   });
 
   it('Status code is not 201', async () => {
     const tempDir = await fsPromises.mkdtemp(path.join(os.tmpdir(), 'foo-'));
-    try {
+    /* try {
       await loadPage(`${host}/second`, tempDir);
     } catch (error) {
-      expect(error.message).toBe(`Expected response code '200', but current code is '201' for '${host}/second'`);
-    }
+      expect(error.message).toBe(`Expected response code '200',
+      but current code is '201' for '${host}/second'`);
+    } */
+    await expect(loadPage(`${host}/second`, tempDir)).rejects.toThrowErrorMatchingSnapshot();
   });
 
   it('Transforming html file and downloading resources', async () => {

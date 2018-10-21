@@ -21,13 +21,13 @@ const handleError = (err) => {
   errorDebug(`Failed with following error code : ${err.code} and message: ${err.message}`);
   switch (err.code) {
     case 'ENOENT':
-      return Promise.reject(new Error(`Passed ${err.path} does not exist!`));
+      return new Error(`Passed '${err.path}' does not exist!`);
     case 'EACCES':
-      return Promise.reject(new Error(`For passed ${err.path} no valid access!`));
+      return new Error(`For passed ${err.path} no valid access!`);
     case 'EISDIR':
-      return Promise.reject(new Error(`${err.path} is directory, no write operation can be performed!`));
+      return new Error(`${err.path} is directory, no write operation can be performed!`);
     default:
-      return Promise.reject(err);
+      return err;
   }
 };
 
@@ -60,8 +60,8 @@ const loadResources = (address, dirName) => {
     .then(({ data, status }) => processResponse(data, status, address))
     .then(responseData => writeToFile(dirName, responseData))
     .catch((err) => {
-      errorDebug(`Error with downloading ${address} of ${dirName}`);
-      return Promise.reject(err);
+      errorDebug(`Error with downloading page from '${address}' to '${dirName}'`);
+      return new Error(`Error with downloading page from ${address} with following error message: ${err.message}`);
     });
 };
 
@@ -122,5 +122,5 @@ export default (address, directory) => {
     .then(data => transformData(data, directoryName))
     .then(({ formattedData, resourceLinks }) => writeToFile(htmlDirectory, formattedData)
       .then(() => processResources(resourceLinks, address, resourceDirectory)))
-    .catch(err => handleError(err));
+    .catch(err => Promise.reject(handleError(err)));
 };
