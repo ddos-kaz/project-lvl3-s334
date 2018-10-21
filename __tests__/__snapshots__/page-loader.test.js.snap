@@ -2,7 +2,7 @@
 
 exports[`Page Loader Status code is not 201 1`] = `"Expected response code '200', but current code is '201' for 'http://localhost/second'"`;
 
-exports[`Page Loader Transforming html file and downloading resources 1`] = `
+exports[`Page Loader Transforming html file and successfully downloading resources 1`] = `
 "<html><head>
      <script src=\\"localhost-test_files/src-script.js\\"></script>
      <link rel=\\"stylesheet\\" href=\\"localhost-test_files/src-style.css\\">

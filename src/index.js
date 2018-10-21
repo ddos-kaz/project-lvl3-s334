@@ -6,6 +6,9 @@ import path from 'path';
 import cheerio from 'cheerio';
 import isUrl from 'is-url';
 import debug from 'debug';
+import Listr from 'listr';
+import chalk from 'chalk';
+import os from 'os';
 
 const mainDebug = debug('page-loader:main');
 const errorDebug = debug('page-loader:error');
@@ -58,7 +61,13 @@ const loadResources = (address, dirName) => {
   mainDebug(`Processing ${address} of ${dirName}`);
   return axios.get(address, { responseType: 'arraybuffer' })
     .then(({ data, status }) => processResponse(data, status, address))
-    .then(responseData => writeToFile(dirName, responseData))
+    .then((responseData) => {
+      const task = new Listr([{
+        title: `  Downloading resource from ${address}`,
+        task: () => writeToFile(dirName, responseData),
+      }]);
+      return task.run();
+    })
     .catch((err) => {
       errorDebug(`Error with downloading page from '${address}' to '${dirName}'`);
       return new Error(`Error with downloading page from ${address} with following error message: ${err.message}`);
@@ -122,5 +131,6 @@ export default (address, directory) => {
     .then(data => transformData(data, directoryName))
     .then(({ formattedData, resourceLinks }) => writeToFile(htmlDirectory, formattedData)
       .then(() => processResources(resourceLinks, address, resourceDirectory)))
+    .then(() => console.log(chalk.bold.green(`${os.EOL}Page was successfully downloaded in '${chalk.underline(fileName)}'`)))
     .catch(err => Promise.reject(handleError(err)));
 };

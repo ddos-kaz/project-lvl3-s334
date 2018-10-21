@@ -12,19 +12,30 @@ axios.defaults.adapter = httpAdapter;
 
 describe('Page Loader', () => {
   beforeAll(async () => {
-    const sourceHTML = await fsPromises.readFile(path.resolve(__dirname, '__fixtures__', 'source.html'), 'utf8');
+    const sourceSuccessHTML = await fsPromises.readFile(path.resolve(__dirname, '__fixtures__', 'sourceSuccess.html'), 'utf8');
+    const sourceErrorHTML = await fsPromises.readFile(path.resolve(__dirname, '__fixtures__', 'sourceError.html'), 'utf8');
     const sourceImg = await fsPromises.readFile(path.resolve(__dirname, '__fixtures__/src', 'hexlet_logo.png'));
     const sourceScript = await fsPromises.readFile(path.resolve(__dirname, '__fixtures__/src', 'script.js'), 'utf8');
     const sourceCSS = await fsPromises.readFile(path.resolve(__dirname, '__fixtures__/src', 'style.css'), 'utf8');
     nock(host)
       .get(pathname)
-      .reply(200, sourceHTML)
+      .reply(200, sourceSuccessHTML)
       .get(`${pathname}/src/hexlet_logo.png`)
       .reply(200, sourceImg)
       .get(`${pathname}/src/script.js`)
       .reply(200, sourceScript)
       .get(`${pathname}/src/style.css`)
       .reply(200, sourceCSS);
+
+    nock(host)
+      .get('/error_with_img')
+      .reply(200, sourceErrorHTML)
+      .get(`${pathname}/src/script.js`)
+      .reply(200, sourceScript)
+      .get(`${pathname}/src/style.css`)
+      .reply(200, sourceCSS)
+      .get(`${pathname}/src/hexlet_logo_two.png`)
+      .reply(410, 'Image is deleted');
 
     nock(host)
       .get('/second')
@@ -52,7 +63,7 @@ describe('Page Loader', () => {
     await expect(loadPage(`${host}/second`, tempDir)).rejects.toThrowErrorMatchingSnapshot();
   });
 
-  it('Transforming html file and downloading resources', async () => {
+  it('Transforming html file and successfully downloading resources', async () => {
     const fileName = 'localhost-test.html';
     const dirName = 'localhost-test_files';
     const tempDir = await fsPromises.mkdtemp(path.join(os.tmpdir(), 'foo-'));
