@@ -2,6 +2,7 @@
 import program from 'commander';
 import loadPage from '..';
 import chalk from 'chalk';
+import process from 'process';
 
 program
   .version('0.0.1')

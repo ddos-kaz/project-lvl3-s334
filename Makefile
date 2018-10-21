@@ -1,5 +1,5 @@
 start:
-	npm run babel-node src/bin/page-loader.js
+	npm run babel-node -- src/bin/page-loader ${args}
 install:
 	npm install
 publish:
@@ -13,4 +13,4 @@ test-watch:
 debug-test:
 	DEBUG=page-loader:* npm test
 debug-run:
-	DEBUG=page-loader:* npm run babel-node src/bin/page-loader.js
+	DEBUG=page-loader:* npm run babel-node src/bin/page-loader --output /var/tmp http://localhost/test

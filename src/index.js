@@ -18,7 +18,7 @@ const parseAddress = (address) => {
 };
 
 const handleError = (err) => {
-  errorDebug(`Failed with following error message: ${err.message}`);
+  errorDebug(`Failed with following error code : ${err.code} and message: ${err.message}`);
   switch (err.code) {
     case 'ENOENT':
       return Promise.reject(new Error(`Passed ${err.path} does not exist!`));
