@@ -43,6 +43,7 @@ const writeToFile = (directory, data) => fs.writeFile(directory, data)
   .then(() => mainDebug(`Data was successfully saved in '${directory}'`));
 
 const processResponse = (data, status, address) => {
+  mainDebug(`Processing response from '${address}'`);
   if (status === 200) {
     mainDebug(`Data from '${address}' successfully loaded`);
     return Promise.resolve(data);
@@ -53,9 +54,16 @@ const processResponse = (data, status, address) => {
 const loadData = address => axios.get(address)
   .then(({ data, status }) => processResponse(data, status, address));
 
-const loadResources = (address, dirName) => axios.get(address, { responseType: 'arraybuffer' })
-  .then(({ data, status }) => processResponse(data, status, address))
-  .then(responseData => writeToFile(dirName, responseData));
+const loadResources = (address, dirName) => {
+  mainDebug(`Processing ${address} of ${dirName}`);
+  return axios.get(address, { responseType: 'arraybuffer' })
+    .then(({ data, status }) => processResponse(data, status, address))
+    .then(responseData => writeToFile(dirName, responseData))
+    .catch((err) => {
+      errorDebug(`Error with downloading ${address} of ${dirName}`);
+      return Promise.reject(err);
+    });
+};
 
 const genResourceName = (resourcePath) => {
   const { dir, name, ext } = path.parse(resourcePath);
@@ -63,11 +71,17 @@ const genResourceName = (resourcePath) => {
   return `${transformName(resourceName)}${ext}`;
 };
 
+const processUrl = (address) => {
+  const { protocol } = url.parse(address);
+  return protocol ? address : `http:${address}`;
+};
+
 const processResources = (links, address, dir) => {
   const promises = links.map((link) => {
-    const resourceAddress = isUrl(link) ? link : `${address}${link}`;
+    const resourceAddress = isUrl(link) ? processUrl(link) : `${address}${link}`;
+    // const resourceAddress = isUrl(link) ? url.format(link) : `${address}${link}`;
     const resourceDirectory = path.normalize(path.format({ dir, base: genResourceName(link) }));
-    return loadResources(resourceAddress, resourceDirectory);
+    return loadResources(resourceAddress, _.replace(resourceDirectory, /\s/g, '_'));
   });
   return Promise.all(promises)
     .then(() => mainDebug(`Resources successfully was saved in following directory: ${dir}`));
@@ -87,7 +101,8 @@ const transformData = (data, dirName) => {
         return '';
       }
       const resourcePath = $(links[i]).attr(tag.tagSrc);
-      $(links[i]).attr(tag.tagSrc, `${dirName}/${genResourceName(resourcePath)}`);
+      const formattedAttr = `${dirName}/${genResourceName(resourcePath)}`;
+      $(links[i]).attr(tag.tagSrc, _.replace(formattedAttr, /\s/g, '_'));
       return resourcePath;
     });
     return [...acc, ...mappedLinks];
