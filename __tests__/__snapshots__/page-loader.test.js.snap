@@ -19,23 +19,3 @@ exports[`Page Loader Transforming html file and downloading resources 1`] = `
 `;
 
 exports[`Page Loader Wrong output directory 1`] = `"Passed '/var/tmp/test' does not exist!"`;
-
-exports[`Status code is not 201 1`] = `"Expected response code '200', but current code is '201' for 'http://localhost/second'"`;
-
-exports[`Transforming html file and downloading resources 1`] = `
-"<html><head>
-     <script src=\\"localhost-test_files/src-script.js\\"></script>
-     <link rel=\\"stylesheet\\" href=\\"localhost-test_files/src-style.css\\">
-  </head>
-  <body>
-    <h1>My First Heading</h1>
-    <p>My first paragraph.</p>
-    <img src=\\"localhost-test_files/src-hexlet_logo.png\\" alt=\\"hexlet-logo\\" height=\\"200\\" width=\\"200\\">
-    <img src=\\"localhost-test_files/developer-cdn-mozilla-net-media-mdn-logo-sm.png\\" alt=\\"MDN logo &#x2014; a dinosaur logo with the text MDN\\">
-    <img>
-
-
-</body></html>"
-`;
-
-exports[`Wrong output directory 1`] = `"Passed '/var/tmp/test' does not exist"`;
