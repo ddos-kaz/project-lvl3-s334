@@ -57,23 +57,6 @@ const processResponse = (data, status, address) => {
 const loadData = address => axios.get(address)
   .then(({ data, status }) => processResponse(data, status, address));
 
-const loadResources = (address, dirName) => {
-  mainDebug(`Processing ${address} of ${dirName}`);
-  return axios.get(address, { responseType: 'arraybuffer' })
-    .then(({ data, status }) => processResponse(data, status, address))
-    .then((responseData) => {
-      const task = new Listr([{
-        title: `  Downloading resource from ${address}`,
-        task: () => writeToFile(dirName, responseData),
-      }]);
-      return task.run();
-    })
-    .catch((err) => {
-      errorDebug(`Error with downloading page from '${address}' to '${dirName}'`);
-      return new Error(`Error with downloading page from ${address} with following error message: ${err.message}`);
-    });
-};
-
 const genResourceName = (resourcePath) => {
   const { dir, name, ext } = path.parse(resourcePath);
   const resourceName = isUrl(resourcePath) ? parseAddress(url.resolve(dir, name)) : _.split(path.resolve(dir, name), '/');
@@ -85,15 +68,48 @@ const processUrl = (address) => {
   return protocol ? address : `http:${address}`;
 };
 
+const loadResources = (address, dirName) => {
+  mainDebug(`Processing ${address} of ${dirName}`);
+  /* return axios.get(address, { responseType: 'arraybuffer' })
+    .then(({ data, status }) => processResponse(data, status, address))
+    .then((responseData) => {
+      const task = new Listr([{
+        title: `  Downloading resource from ${address}`,
+        task: () => writeToFile(dirName, responseData),
+      }]);
+      return task.run();
+    })
+    .catch((err) => {
+      errorDebug(`Error with downloading page from '${address}' to '${dirName}'`);
+      return new Error(`Error with downloading page from ${address} ${err.message}`);
+    }); */
+  return {
+    title: `  Downloading resource from ${address}`,
+    task: () => axios.get(address, { responseType: 'arraybuffer' })
+      .then(({ data }) => writeToFile(dirName, data))
+      .catch((err) => {
+        errorDebug(`Error in downloadig resource from ${address} with following message: ${err.message}`);
+        return new Error(`Error in downloadig resource from ${address} with following message: ${err.message}`);
+      }),
+  };
+};
+
 const processResources = (links, address, dir) => {
-  const promises = links.map((link) => {
+  /* const promises = links.map((link) => {
     const resourceAddress = isUrl(link) ? processUrl(link) : `${address}${link}`;
     // const resourceAddress = isUrl(link) ? url.format(link) : `${address}${link}`;
     const resourceDirectory = path.normalize(path.format({ dir, base: genResourceName(link) }));
     return loadResources(resourceAddress, _.replace(resourceDirectory, /\s/g, '_'));
+  }); */
+  const tasks = links.map((link) => {
+    const resourceAddress = isUrl(link) ? processUrl(link) : `${address}${link}`;
+    const resourceDirectory = path.normalize(path.format({ dir, base: genResourceName(link) }));
+    return loadResources(resourceAddress, _.replace(resourceDirectory, /\s/g, '_'));
   });
-  return Promise.all(promises)
-    .then(() => mainDebug(`Resources successfully was saved in following directory: ${dir}`));
+  const listrTasks = new Listr(tasks, { concurrent: true });
+  /* return Promise.all(promises)
+    .then(() => mainDebug(`Resources successfully was saved in following directory: ${dir}`)); */
+  return Promise.resolve(listrTasks.run());
 };
 
 const transformData = (data, dirName) => {
@@ -130,7 +146,8 @@ export default (address, directory) => {
     .then(() => loadData(address))
     .then(data => transformData(data, directoryName))
     .then(({ formattedData, resourceLinks }) => writeToFile(htmlDirectory, formattedData)
-      .then(() => processResources(resourceLinks, address, resourceDirectory)))
+      .then(() => processResources(resourceLinks, address, resourceDirectory))
+      .then(() => mainDebug(`Resources successfully was saved in following directory: ${resourceDirectory}`)))
     .then(() => console.log(chalk.bold.green(`${os.EOL}Page was successfully downloaded in '${chalk.underline(fileName)}'`)))
     .catch(err => Promise.reject(handleError(err)));
 };

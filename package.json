@@ -1,6 +1,6 @@
 {
   "name": "ddos-page-loader",
-  "version": "5.0.4",
+  "version": "5.0.8",
   "description": "Third project of Hexlet",
   "main": "index.js",
   "bin": {
