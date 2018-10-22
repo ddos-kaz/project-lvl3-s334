@@ -5,7 +5,7 @@
 [![Build Status](https://travis-ci.org/ddos-kaz/project-lvl3-s334.svg?branch=master)](https://travis-ci.org/ddos-kaz/project-lvl3-s334)
 
 Terminall session:
-[![demo](https://asciinema.org/a/H115mI62OEmWXLLJg0Gi7hHKO.png)](https://asciinema.org/a/H115mI62OEmWXLLJg0Gi7hHKO) 
+[![demo](https://asciinema.org/a/GBfVECcbCsaVuQYZCujeriAKC.png)](https://asciinema.org/a/GBfVECcbCsaVuQYZCujeriAKC) 
 Utility for downloading particular address with packages from a web.
 
 ## Installation and Usage
